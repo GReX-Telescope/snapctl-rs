@@ -1,0 +1,10 @@
+[package]
+name = "snapctl"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+katcp = { path = "../katcp"}
+katcp-casper = { path = "../katcp-casper"}
+clap = { version = "3", features = ["derive"] }
