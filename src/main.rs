@@ -205,20 +205,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         writer,
     };
     // Read the first three informs that give us system information
-    let _ = read_version_connect(&mut state).await;
-    let _ = read_version_connect(&mut state).await;
-    let _ = read_version_connect(&mut state).await;
+    let a = read_version_connect(&mut state).await;
+    let b = read_version_connect(&mut state).await;
+    let c = read_version_connect(&mut state).await;
+    debug!(?a);
+    debug!(?b);
+    debug!(?c);
     // Perform the action
     match args.command {
         Command::Load { path, force } => {
             // let bofs = get_bofs(&mut state).await;
             // println!("{:#?}", bofs);
             program_bof(
-                path.file_name()
-                    .expect("bof file does not exist")
-                    .to_str()
-                    .unwrap()
-                    .to_owned(),
+                path.file_name().unwrap().to_str().unwrap().to_owned(),
                 force,
                 &mut state,
             )
