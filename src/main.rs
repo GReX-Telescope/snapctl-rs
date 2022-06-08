@@ -63,13 +63,13 @@ fn handle_log(log: Log) {
     } = log
     {
         match level {
-            LogLevel::Error => error!("{} {}", name, message),
-            LogLevel::Warn => warn!("{} {}", name, message),
-            LogLevel::Info => info!("{} {}", name, message),
-            LogLevel::Debug => debug!("{} {}", name, message),
-            LogLevel::Trace => trace!("{} {}", name, message),
+            LogLevel::Error => error!("[{}] {}", name, message),
+            LogLevel::Warn => warn!("[{}] {}", name, message),
+            LogLevel::Info => info!("[{}] {}", name, message),
+            LogLevel::Debug => debug!("[{}] {}", name, message),
+            LogLevel::Trace => trace!("[{}] {}", name, message),
             _ => println!(
-                "Unexpected Log: {} {} {}",
+                "Unexpected Log: [{}] {} {}",
                 level.to_argument(),
                 name,
                 message
