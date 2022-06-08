@@ -167,10 +167,9 @@ async fn get_bofs(state: &mut State) -> Vec<String> {
     }
 }
 
-async fn program_bof(filename: String, state: &mut State) -> Result<(), Log> {
+async fn program_bof(filename: String, state: &mut State) {
     // Try to program
     let (reply, status) = send_request(Progdev::Request { filename }, state).await;
-    todo!()
 }
 
 #[tokio::main]
@@ -195,10 +194,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let _ = read_version_connect(&mut state).await;
     // Perform the action
     match args.command {
-        Command::Load { .. } => {
+        Command::Load { path, force } => {
             // let bofs = get_bofs(&mut state).await;
             // println!("{:#?}", bofs);
-            program_bof("snap_ad.bof".to_owned(), &mut state).await;
+            program_bof(
+                path.file_name()
+                    .expect("bof file does not exist")
+                    .to_str()
+                    .unwrap()
+                    .to_owned(),
+                &mut state,
+            )
+            .await;
             Ok(())
         }
     }
