@@ -142,7 +142,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?
         .into_split();
     // Startup dispatcher
-    dispatch_katcp_messages(tx, reader, make_dispatchers()).await;
+    task::spawn(dispatch_katcp_messages(tx, reader, make_dispatchers()));
     // Setup the program state
     let mut state = State {
         unhandled_incoming_messages: rx,
