@@ -116,7 +116,7 @@ where
         // We expect either log informs, message informs, or replys
         let raw: Message = line.as_str().try_into().expect("Malformed KATCP message");
         let new_msg_type = raw.name();
-        if new_msg_type != request_name && new_msg_type != "log" {
+        if new_msg_type != request_name && new_msg_type != "log" && new_msg_type != "fpga" {
             panic!("Got unexpected KATCP message: {}", raw.name());
         }
         // Deal with the three cases
