@@ -205,12 +205,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         writer,
     };
     // Read the first three informs that give us system information
-    let a = read_version_connect(&mut state).await;
-    let b = read_version_connect(&mut state).await;
-    let c = read_version_connect(&mut state).await;
-    debug!(?a);
-    debug!(?b);
-    debug!(?c);
+    let device_lib = read_version_connect(&mut state).await;
+    let device_protocol = read_version_connect(&mut state).await;
+    let device_kernel = read_version_connect(&mut state).await;
+    debug!(?device_lib);
+    debug!(?device_protocol);
+    debug!(?device_kernel);
     // Perform the action
     match args.command {
         Command::Load { path, force } => {
