@@ -176,6 +176,7 @@ async fn program_bof(filename: String, state: &mut State) -> Result<(), Log> {
 async fn main() -> Result<(), Box<dyn Error>> {
     // Start the logger
     pretty_env_logger::init();
+    info!("Logging started!");
     // Grab the command line arguments
     let args = Args::parse();
     // Connect to the SNAP katcp server
