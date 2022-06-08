@@ -6,18 +6,15 @@ use katcp::{
     messages::{core::*, log::*},
     prelude::*,
 };
-use std::{collections::HashMap, error::Error, net::IpAddr, path::PathBuf};
-use std::{fmt::Debug, net::SocketAddr};
-use tokio::task;
+use katcp_casper::{Listbof, Progdev};
+use std::{error::Error, fmt::Debug, net::SocketAddr};
 use tokio::{
-    io::{AsyncBufReadExt, AsyncWriteExt, BufReader, Lines},
-    net::{
-        tcp::{OwnedReadHalf, OwnedWriteHalf},
-        TcpStream,
-    },
+    io::AsyncWriteExt,
+    net::{tcp::OwnedWriteHalf, TcpStream},
     sync::mpsc::{unbounded_channel, UnboundedReceiver},
+    task,
 };
-use tracing::{debug, error, trace};
+use tracing::{debug, info, trace};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use args::*;
@@ -107,48 +104,66 @@ async fn set_device_log_level(state: &mut State, lvl: Level) {
     }
 }
 
-// /// Returns a vector of bof-files present on the device
-// async fn get_bofs(state: &mut State) -> Vec<String> {
-//     // Send a listbof message and collect what comes back (no FPGA status updates)
-//     let (replies, _) = send_request(Listbof::Request, state).await;
-//     if let Listbof::Reply(IntReply::Ok { num }) = replies.last().unwrap() {
-//         assert_eq!(
-//             *num,
-//             (replies.len() as u32) - 1,
-//             "We didn't recieve as many files as we were told to expect"
-//         );
-//         replies
-//             .iter()
-//             .take(*num as usize)
-//             .map(|inform| {
-//                 if let Listbof::Inform { filename } = inform {
-//                     filename.clone()
-//                 } else {
-//                     unreachable!()
-//                 }
-//             })
-//             .collect()
-//     } else {
-//         panic!("Last message from request wasn't a reply");
-//     }
-// }
+/// Returns a vector of bof-files present on the device
+async fn get_bofs(state: &mut State) -> Vec<String> {
+    match make_request(state, Listbof::Request).await {
+        Ok(v) => {
+            // The returned vector should be all informs and the reply
+            // We should check we got back the number of messages we expected
+            let reply = v
+                .iter()
+                .find(|msg| matches!(msg, Listbof::Reply(_)))
+                .expect("We didn't get a Listbof reply");
+            let num_bofs = match reply {
+                Listbof::Reply(IntReply::Ok { num }) => *num,
+                _ => panic!("The Listbof reply contained an error code"),
+            };
+            assert_eq!(num_bofs, (v.len() as u32) - 1);
+            // Now grab all the filenames
+            v.iter()
+                .filter_map(|msg| match msg {
+                    Listbof::Inform { filename } => Some(filename.clone()),
+                    _ => None,
+                })
+                .collect()
+        }
+        Err(e) => {
+            println!("{}", e);
+            panic!("Setting log level errored: we're bailing");
+        }
+    }
+}
 
-// async fn program_bof(filename: String, force: bool, state: &mut State) {
-//     // First get the list of bofs
-//     let bofs = get_bofs(state).await;
-//     if bofs.iter().any(|e| *e == filename) && !force {
-//         // Upload the file that's already on board
-//         let (reply, status) = send_request(
-//             Progdev::Request {
-//                 filename: filename.clone(),
-//             },
-//             state,
-//         )
-//         .await;
-//     } else {
-//         // Upload the file directly and then try to program
-//     }
-// }
+async fn program_bof(filename: String, force: bool, state: &mut State) {
+    // First get the list of bofs
+    let bofs = get_bofs(state).await;
+    if bofs.iter().any(|e| *e == filename) && !force {
+        // Upload the file that's already on board
+        match make_request(
+            state,
+            Progdev::Request {
+                filename: filename.clone(),
+            },
+        )
+        .await
+        {
+            Ok(v) => {
+                // We should have gotten one reply
+                if let Some(Progdev::Reply { ret_code }) = v.get(0) {
+                    if *ret_code == RetCode::Ok {
+                        info!("BOF programming successful");
+                    }
+                }
+            }
+            Err(e) => {
+                println!("{}", e);
+                panic!("Programming the boffile failed: we're bailing");
+            }
+        }
+    } else {
+        // Upload the file directly and then try to program
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -180,17 +195,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ping(&mut state).await;
     // Ask the device  to send us trace level logs, even if we don't use them as we'll filter them here
     set_device_log_level(&mut state, Level::Trace).await;
+    // Perform the requested action
+    // Perform the action
+    match args.command {
+        Command::Load { path, force } => {
+            program_bof(
+                path.file_name().unwrap().to_str().unwrap().to_owned(),
+                force,
+                &mut state,
+            )
+            .await;
+        }
+    };
     Ok(())
-    // // Perform the action
-    // match args.command {
-    //     Command::Load { path, force } => {
-    //         program_bof(
-    //             path.file_name().unwrap().to_str().unwrap().to_owned(),
-    //             force,
-    //             &mut state,
-    //         )
-    //         .await;
-    //         Ok(())
-    //     }
-    // }
 }
