@@ -6,7 +6,7 @@ use katcp::{
     },
     prelude::*,
 };
-use katcp_casper::{Fpga, Listbof, Progdev};
+use katcp_casper::{Fpga, FpgaStatus, Listbof, Progdev};
 use log::{debug, error, info, trace, warn};
 use pretty_env_logger::env_logger::Env;
 use std::{error::Error, net::IpAddr, path::PathBuf};
@@ -167,9 +167,26 @@ async fn get_bofs(state: &mut State) -> Vec<String> {
     }
 }
 
-async fn program_bof(filename: String, state: &mut State) {
+async fn program_bof(filename: String, force: bool, state: &mut State) {
+    // First get the list of bofs
+    let bofs = get_bofs(state).await;
+    // Force an upload if we've set --force
+    // Query for an upload port
+    // Perform the upload
     // Try to program
-    let (reply, status) = send_request(Progdev::Request { filename }, state).await;
+    let (reply, status) = send_request(
+        Progdev::Request {
+            filename: filename.clone(),
+        },
+        state,
+    )
+    .await;
+    if let Some(Fpga::Inform {
+        status: FpgaStatus::Ready,
+    }) = status
+    {
+        info!("SNAP programmed and mapped with {}", &filename);
+    }
 }
 
 #[tokio::main]
@@ -203,6 +220,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     .to_str()
                     .unwrap()
                     .to_owned(),
+                force,
                 &mut state,
             )
             .await;
