@@ -50,7 +50,7 @@ fn handle_version_connect(vc_msg: Message) {
     }
 }
 
-pub(crate) fn make_dispatchers() -> Dispatchers {
+pub(crate) fn make_inform_dispatchers() -> Dispatchers {
     let mut dispatchers: Dispatchers = HashMap::new();
     dispatchers.insert("log".to_owned(), Box::new(handle_log));
     dispatchers.insert("fpga".to_owned(), Box::new(handle_fpga));
@@ -61,7 +61,7 @@ pub(crate) fn make_dispatchers() -> Dispatchers {
     dispatchers
 }
 
-pub(crate) async fn dispatch_katcp_messages(
+pub(crate) async fn handle_informs(
     sender: UnboundedSender<Message>,
     reader: OwnedReadHalf,
     mut dispatchers: Dispatchers,
@@ -83,6 +83,13 @@ pub(crate) async fn dispatch_katcp_messages(
                 .as_str()
                 .try_into()
                 .expect("Fatal error while trying to deserialize incoming KATCP message");
+            // Only handle (async) informs, otherwise just push to the channel
+            if msg.kind() != MessageKind::Inform {
+                sender.send(msg).expect(
+                    "We tried to write to the message channel, but the channel has been closed",
+                );
+                continue;
+            }
             // If we have a dispatcher for this type, do the thing
             if let Some(dispatch_fn) = dispatchers.get_mut(&msg.name()) {
                 dispatch_fn(msg);

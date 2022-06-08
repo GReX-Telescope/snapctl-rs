@@ -2,7 +2,10 @@ mod args;
 mod handlers;
 
 use clap::Parser;
-use katcp::{messages::core::*, prelude::*};
+use katcp::{
+    messages::{core::*, log::*},
+    prelude::*,
+};
 use std::{collections::HashMap, error::Error, net::IpAddr, path::PathBuf};
 use std::{fmt::Debug, net::SocketAddr};
 use tokio::task;
@@ -15,6 +18,7 @@ use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver},
 };
 use tracing::{debug, error, trace};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use args::*;
 use handlers::*;
@@ -85,6 +89,24 @@ async fn ping(state: &mut State) {
     }
 }
 
+async fn set_device_log_level(state: &mut State, lvl: LogLevel) {
+    match make_request(state, Log::Request { level: Some(lvl) }).await {
+        Ok(v) => {
+            if let Log::Reply { ret_code, level } = v.get(0).unwrap() {
+                assert_eq!(*ret_code, RetCode::Ok);
+                assert_eq!(*level, lvl);
+                debug!("Set log level successfully!");
+            } else {
+                panic!("Got a bad log level response, we're bailing");
+            }
+        }
+        Err(e) => {
+            println!("{}", e);
+            panic!("Setting log level errored: we're bailing");
+        }
+    }
+}
+
 // /// Returns a vector of bof-files present on the device
 // async fn get_bofs(state: &mut State) -> Vec<String> {
 //     // Send a listbof message and collect what comes back (no FPGA status updates)
@@ -132,8 +154,14 @@ async fn ping(state: &mut State) {
 async fn main() -> Result<(), Box<dyn Error>> {
     // Grab the command line arguments
     let args = Args::parse();
-    // install global collector configured based on RUST_LOG env var.
-    tracing_subscriber::fmt::init();
+    // install global collector configured based on RUST_LOG env var or default to info.
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .unwrap();
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(filter_layer)
+        .init();
     debug!("Logging started");
     // Create the channels
     let (tx, rx) = unbounded_channel::<Message>();
@@ -142,7 +170,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .await?
         .into_split();
     // Startup dispatcher
-    task::spawn(dispatch_katcp_messages(tx, reader, make_dispatchers()));
+    task::spawn(handle_informs(tx, reader, make_inform_dispatchers()));
     // Setup the program state
     let mut state = State {
         unhandled_incoming_messages: rx,
@@ -150,6 +178,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     // Do an initial ping to make sure we're actually connected
     ping(&mut state).await;
+    // Ask the device  to send us trace level logs, even if we don't use them as we'll filter them here
+    set_device_log_level(&mut state, LogLevel::Trace).await;
     Ok(())
     // // Perform the action
     // match args.command {
