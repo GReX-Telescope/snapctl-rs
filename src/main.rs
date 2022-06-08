@@ -184,8 +184,8 @@ async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
         {
             Ok(v) => {
                 // We should have gotten one reply
-                if let Some(Upload::Reply(IntReply::Ok { num })) = v.get(0) {
-                    if *num == (port as u32) {
+                if let Some(Upload::Reply { ret_code }) = v.get(0) {
+                    if *ret_code == RetCode::Ok {
                         debug!("Upload port set: waiting for data");
                     }
                 } else {
