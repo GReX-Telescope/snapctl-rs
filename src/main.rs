@@ -8,7 +8,7 @@ use katcp::{
 };
 use katcp_casper::{Fpga, Listbof, Progdev};
 use log::{debug, error, info, trace, warn};
-use pretty_env_logger;
+use pretty_env_logger::env_logger::Env;
 use std::{error::Error, net::IpAddr, path::PathBuf};
 use std::{fmt::Debug, net::SocketAddr};
 use tokio::{
@@ -176,6 +176,9 @@ async fn program_bof(filename: String, state: &mut State) {
 async fn main() -> Result<(), Box<dyn Error>> {
     // Start the logger
     pretty_env_logger::init();
+    // Set default log level to info
+    pretty_env_logger::env_logger::Builder::from_env(Env::default().default_filter_or("info"))
+        .init();
     info!("Logging started!");
     // Grab the command line arguments
     let args = Args::parse();
