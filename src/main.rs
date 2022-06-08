@@ -198,7 +198,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Command::Load { .. } => {
             // let bofs = get_bofs(&mut state).await;
             // println!("{:#?}", bofs);
-            program_bof("snap_adc.bof".to_owned(), &mut state).await;
+            program_bof("snap_ad.bof".to_owned(), &mut state).await;
             Ok(())
         }
     }
