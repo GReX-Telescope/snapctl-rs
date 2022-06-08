@@ -141,6 +141,7 @@ where
     (informs_and_reply, status_updates.last().cloned())
 }
 
+/// Returns a vector of bof-files present on the device
 async fn get_bofs(state: &mut State) -> Vec<String> {
     // Send a listbof message and collect what comes back (no FPGA status updates)
     let (replies, _) = send_request(Listbof::Request, state).await;
@@ -195,8 +196,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Perform the action
     match args.command {
         Command::Load { .. } => {
-            let bofs = get_bofs(&mut state).await;
-            println!("{:#?}", bofs);
+            // let bofs = get_bofs(&mut state).await;
+            // println!("{:#?}", bofs);
+            program_bof("snap_adc.bof".to_owned(), &mut state).await;
             Ok(())
         }
     }
