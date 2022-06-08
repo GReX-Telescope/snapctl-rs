@@ -16,11 +16,11 @@ fn handle_log(log_msg: Message) {
             message,
             ..
         }) => match level {
-            LogLevel::Error => error!(%name, %message),
-            LogLevel::Warn => warn!(%name, %message),
-            LogLevel::Info => info!(%name, %message),
-            LogLevel::Debug => debug!(%name, %message),
-            LogLevel::Trace => trace!(%name, %message),
+            Level::Error => error!(%name, %message),
+            Level::Warn => warn!(%name, %message),
+            Level::Info => info!(%name, %message),
+            Level::Debug => debug!(%name, %message),
+            Level::Trace => trace!(%name, %message),
             _ => println!(
                 "Unexpected Log: [{}] {} {}",
                 level.to_argument(),
