@@ -89,7 +89,10 @@ async fn read_version_connect(state: &mut State) -> VersionConnect {
         .expect("Error deserializing version connect message")
 }
 
-async fn send_request<K: KatcpMessage>(request: K, state: &mut State) -> (Vec<K>, Option<Fpga>)
+async fn send_request<K: KatcpMessage + std::fmt::Debug>(
+    request: K,
+    state: &mut State,
+) -> (Vec<K>, Option<Fpga>)
 where
     <K as std::convert::TryFrom<katcp::prelude::Message>>::Error: std::fmt::Debug,
 {
@@ -103,6 +106,7 @@ where
         .write_all(request_msg.to_string().as_bytes())
         .await
         .expect("Error writting bytes to TCP connection");
+    trace!(?request, "Sending KATCP request");
 
     // Containers for collected messages
     let mut informs_and_reply = vec![];
@@ -122,18 +126,24 @@ where
         match new_msg_type.as_str() {
             "log" => handle_log(raw.try_into().expect("Could not deserialize log message")),
             "fpga" => {
-                status_updates.push(raw.try_into().expect("Could not deserialize fpga stauts"))
+                let status = raw.try_into().expect("Could not deserialize fpga stauts");
+                trace!(?status);
+                status_updates.push(status);
             }
             _ => match raw.kind() {
                 MessageKind::Request => unreachable!(),
                 MessageKind::Reply => {
                     // Push the last reply and break
-                    informs_and_reply
-                        .push(raw.try_into().expect("Could not deserialize KATCP reply"));
+                    let reply = raw.try_into().expect("Could not deserialize KATCP reply");
+                    trace!(?reply);
+                    informs_and_reply.push(reply);
                     break;
                 }
-                MessageKind::Inform => informs_and_reply
-                    .push(raw.try_into().expect("Could not deserialize KATCP inform")),
+                MessageKind::Inform => {
+                    let inform = raw.try_into().expect("Could not deserialize KATCP infrom");
+                    trace!(?inform);
+                    informs_and_reply.push(inform);
+                }
             },
         }
     }
