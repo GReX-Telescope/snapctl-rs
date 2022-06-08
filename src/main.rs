@@ -89,10 +89,10 @@ async fn ping(state: &mut State) {
     }
 }
 
-async fn set_device_log_level(state: &mut State, lvl: LogLevel) {
-    match make_request(state, Log::Request { level: Some(lvl) }).await {
+async fn set_device_log_level(state: &mut State, lvl: Level) {
+    match make_request(state, LogLevel::Request { level: lvl }).await {
         Ok(v) => {
-            if let Log::Reply { ret_code, level } = v.get(0).unwrap() {
+            if let LogLevel::Reply { ret_code, level } = v.get(0).unwrap() {
                 assert_eq!(*ret_code, RetCode::Ok);
                 assert_eq!(*level, lvl);
                 debug!("Set log level successfully!");
@@ -179,7 +179,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Do an initial ping to make sure we're actually connected
     ping(&mut state).await;
     // Ask the device  to send us trace level logs, even if we don't use them as we'll filter them here
-    set_device_log_level(&mut state, LogLevel::Trace).await;
+    set_device_log_level(&mut state, Level::Trace).await;
     Ok(())
     // // Perform the action
     // match args.command {

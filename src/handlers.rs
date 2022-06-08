@@ -28,7 +28,6 @@ fn handle_log(log_msg: Message) {
                 message
             ),
         },
-        Ok(_) => unreachable!(),
         Err(e) => error!(?e, "Couldn't deserialize `log`"),
     };
 }
