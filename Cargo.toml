@@ -8,3 +8,5 @@ tokio = { version = "1", features = ["full"] }
 katcp = { path = "../katcp"}
 katcp-casper = { path = "../katcp-casper"}
 clap = { version = "3", features = ["derive"] }
+log = "0.4"
+pretty_env_logger = "0.4"
