@@ -6,10 +6,16 @@ use katcp::{
     messages::{core::*, log::*},
     prelude::*,
 };
-use katcp_casper::{Listbof, Progdev};
-use std::{error::Error, fmt::Debug, net::SocketAddr};
+use katcp_casper::{Listbof, Progdev, Upload};
+use std::{
+    error::Error,
+    fmt::Debug,
+    net::{IpAddr, SocketAddr},
+    path::PathBuf,
+};
 use tokio::{
-    io::AsyncWriteExt,
+    fs::File,
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{tcp::OwnedWriteHalf, TcpStream},
     sync::mpsc::{unbounded_channel, UnboundedReceiver},
     task,
@@ -24,6 +30,8 @@ struct State {
     unhandled_incoming_messages: UnboundedReceiver<Message>,
     // The writer
     writer: OwnedWriteHalf,
+    // The connection address
+    address: IpAddr,
 }
 
 async fn make_request<T>(state: &mut State, request: T) -> Result<Vec<T>, String>
@@ -134,11 +142,13 @@ async fn get_bofs(state: &mut State) -> Vec<String> {
     }
 }
 
-async fn program_bof(filename: String, force: bool, state: &mut State) {
+async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
+    let filename = path.file_name().unwrap().to_str().unwrap().to_owned();
     // First get the list of bofs
     let bofs = get_bofs(state).await;
     if bofs.iter().any(|e| *e == filename) && !force {
         // Upload the file that's already on board
+        debug!("A boffile with this name already exists on the device, programming that");
         match make_request(
             state,
             Progdev::Request {
@@ -162,6 +172,54 @@ async fn program_bof(filename: String, force: bool, state: &mut State) {
         }
     } else {
         // Upload the file directly and then try to program
+        debug!("The file we want to program doesn't exist on the device (or we're forcing an upload), upload it instead");
+        // Get an upload port
+        match make_request(
+            state,
+            Upload::Request {
+                port: (port as u32),
+            },
+        )
+        .await
+        {
+            Ok(v) => {
+                // We should have gotten one reply
+                if let Some(Upload::Reply(IntReply::Ok { num })) = v.get(0) {
+                    if *num == (port as u32) {
+                        debug!("Upload port set: waiting for data");
+                    }
+                } else {
+                    panic!("Request for upload failed, see logs");
+                }
+            }
+            Err(e) => {
+                println!("{}", e);
+                panic!("Requesting an upload port failed: we're bailing");
+            }
+        };
+        // Netcat the file over
+        let mut file = File::open(path)
+            .await
+            .expect("Could not open file. Is the path correct?");
+        // Read all the data into a buffer here
+        let mut contents = vec![];
+        file.read_to_end(&mut contents)
+            .await
+            .expect("Couldn't read boffile");
+        let mut upload_stream = TcpStream::connect(SocketAddr::new(state.address, port))
+            .await
+            .expect("Error creating upload connection");
+        upload_stream
+            .write_all(&contents)
+            .await
+            .expect("Error while uploading boffile");
+        // Close stream
+        upload_stream
+            .shutdown()
+            .await
+            .expect("Error closing upload connection");
+        // I guess we're ok now?
+        info!("BOF programming successful");
     }
 }
 
@@ -190,6 +248,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let mut state = State {
         unhandled_incoming_messages: rx,
         writer,
+        address: args.address,
     };
     // Do an initial ping to make sure we're actually connected
     ping(&mut state).await;
@@ -198,13 +257,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Perform the requested action
     // Perform the action
     match args.command {
-        Command::Load { path, force } => {
-            program_bof(
-                path.file_name().unwrap().to_str().unwrap().to_owned(),
-                force,
-                &mut state,
-            )
-            .await;
+        Command::Load { path, force, port } => {
+            program_bof(path, force, port, &mut state).await;
         }
     };
     Ok(())

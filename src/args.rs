@@ -9,6 +9,9 @@ pub(crate) enum Command {
         /// Overwrite file if it already exists
         #[clap(short, long)]
         force: bool,
+        /// The port to upload data through (separate from the katcp port)
+        #[clap(long, default_value_t = 3000)]
+        port: u16,
     },
 }
 
