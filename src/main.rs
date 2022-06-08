@@ -7,8 +7,6 @@ use katcp::{
     prelude::*,
 };
 use katcp_casper::{Fpga, FpgaStatus, Listbof, Progdev};
-use log::{debug, error, info, trace, warn};
-use pretty_env_logger::env_logger::Env;
 use std::{error::Error, net::IpAddr, path::PathBuf};
 use std::{fmt::Debug, net::SocketAddr};
 use tokio::{
@@ -18,6 +16,7 @@ use tokio::{
         TcpStream,
     },
 };
+use tracing::{debug, error, info, instrument, trace, warn};
 
 #[derive(Subcommand, Debug)]
 enum Command {
@@ -191,8 +190,8 @@ async fn program_bof(filename: String, force: bool, state: &mut State) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    // Start the logger
-    pretty_env_logger::init();
+    // install global collector configured based on RUST_LOG env var.
+    tracing_subscriber::fmt::init();
     info!("Logging started!");
     // Grab the command line arguments
     let args = Args::parse();

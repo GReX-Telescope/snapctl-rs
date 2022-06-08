@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.2"
 katcp = { path = "../katcp"}
 katcp-casper = { path = "../katcp-casper"}
 clap = { version = "3", features = ["derive"] }
-log = "0.4"
-pretty_env_logger = "0.4"
