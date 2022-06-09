@@ -143,7 +143,9 @@ checksum = "112c678d4050afce233f4f2852bb2eb519230b3cf12f33585275537d7e41578d"
 
 [[package]]
 name = "katcp"
-version = "0.1.5"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82eaa999f99793291874a4473af563ab9bfd36d117197baadd2bf2a3ce413de2"
 dependencies = [
  "chrono",
  "katcp_derive",
@@ -154,6 +156,7 @@ dependencies = [
 [[package]]
 name = "katcp-casper"
 version = "0.1.0"
+source = "git+https://github.com/GReX-Telescope/katcp-casper#f8844eb4da7de3a7ae23284539e782f7b51cfa43"
 dependencies = [
  "katcp",
  "katcp_derive",
@@ -161,7 +164,9 @@ dependencies = [
 
 [[package]]
 name = "katcp_derive"
-version = "0.1.5"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b7cff9e9fa4ba81e320f33ad05d9c79fd710cc6b992a41c81ea60615b2fd2ce"
 dependencies = [
  "convert_case",
  "proc-macro2",
