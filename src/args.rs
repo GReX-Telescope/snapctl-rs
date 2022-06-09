@@ -19,11 +19,10 @@ pub(crate) enum Command {
 #[clap(author, version, about, long_about = None)]
 #[clap(propagate_version = true)]
 pub(crate) struct Args {
+    /// Address of the SNAP tcpborph server
+    pub(crate) address: IpAddr,
     #[clap(subcommand)]
     pub(crate) command: Command,
-    /// Address of the SNAP tcpborph server
-    #[clap(short, long)]
-    pub(crate) address: IpAddr,
     /// Port of the SNAP katcp tcpborph server
     #[clap(short, long, default_value_t = 7147)]
     pub(crate) port: u16,

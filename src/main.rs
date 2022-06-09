@@ -229,7 +229,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
     // install global collector configured based on RUST_LOG env var or default to info.
     let filter_layer = EnvFilter::try_from_default_env()
-        .or_else(|_| EnvFilter::try_new("info"))
+        .or_else(|_| EnvFilter::try_new(if args.verbose { "debug" } else { "info" }))
         .unwrap();
     tracing_subscriber::registry()
         .with(fmt::layer())
