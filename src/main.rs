@@ -6,7 +6,7 @@ use katcp::{
     messages::{core::*, log::*},
     prelude::*,
 };
-use katcp_casper::{Listbof, Progdev, Upload};
+use katcp_casper::*;
 use std::{
     error::Error,
     fmt::Debug,
@@ -148,7 +148,7 @@ async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
     let bofs = get_bofs(state).await;
     if bofs.iter().any(|e| *e == filename) && !force {
         // Upload the file that's already on board
-        debug!("A boffile with this name already exists on the device, programming that");
+        info!("A file with this name already exists on the device, programming that instead of uploading");
         match make_request(
             state,
             Progdev::Request {
@@ -173,6 +173,7 @@ async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
     } else {
         // Upload the file directly and then try to program
         debug!("The file we want to program doesn't exist on the device (or we're forcing an upload), upload it instead");
+        info!("Attempting to program: {}", path.display());
         // Get an upload port
         match make_request(
             state,
@@ -218,8 +219,21 @@ async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
             .shutdown()
             .await
             .expect("Error closing upload connection");
-        // I guess we're ok now?
-        info!("BOF programming successful");
+        // Check status
+        match make_request(state, Status::Request).await {
+            Ok(v) => {
+                if let Some(Status::Reply { ret_code }) = v.get(0) {
+                    if *ret_code != RetCode::Ok {
+                        panic!("Request for upload failed, see logs");
+                    }
+                }
+            }
+            Err(e) => {
+                println!("{}", e);
+                panic!("Requesting the FPGA status failed: we're bailing");
+            }
+        }
+        info!("Programming successful");
     }
 }
 
@@ -252,6 +266,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
     // Do an initial ping to make sure we're actually connected
     ping(&mut state).await;
+    info!("Connected to the SNAP");
     // Ask the device  to send us trace level logs, even if we don't use them as we'll filter them here
     set_device_log_level(&mut state, Level::Trace).await;
     // Perform the requested action
