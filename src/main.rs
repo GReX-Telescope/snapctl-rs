@@ -220,9 +220,9 @@ async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
             .await
             .expect("Error closing upload connection");
         // Check status
-        match make_request(state, Status::Request).await {
+        match make_request(state, Fpgastatus::Request).await {
             Ok(v) => {
-                if let Some(Status::Reply { ret_code }) = v.get(0) {
+                if let Some(Fpgastatus::Reply { ret_code }) = v.get(0) {
                     if *ret_code != RetCode::Ok {
                         panic!("Request for upload failed, see logs");
                     }
