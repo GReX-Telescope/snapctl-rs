@@ -2,6 +2,11 @@
 name = "snapctl"
 version = "0.1.0"
 edition = "2021"
+license = "Apache-2.0 OR MIT"
+repository = "https://github.com/GReX-Telescope/snapctl"
+description = "A command line tool for configuring and monitoring the SNAP FPGA board"
+homepage = "https://github.com/GReX-Telescope/snapctl"
+readme = "README.md"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
