@@ -1,0 +1,8 @@
+[package]
+name = "katcp_casper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+katcp = "0.1"
+katcp_derive = "0.1"

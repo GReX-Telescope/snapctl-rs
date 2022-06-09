@@ -13,5 +13,10 @@ tokio = { version = "1", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = "0.2"
 katcp = "0.1"
-katcp-casper = { git = "https://github.com/GReX-Telescope/katcp-casper"}
+katcp_casper = { path = "katcp_casper"}
 clap = { version = "3", features = ["derive"] }
+packed_struct = "0.10"
+
+[workspace]
+members = ["katcp_casper"]
+

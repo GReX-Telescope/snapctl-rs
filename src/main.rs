@@ -1,3 +1,4 @@
+mod adc;
 mod args;
 mod handlers;
 
