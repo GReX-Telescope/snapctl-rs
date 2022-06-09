@@ -44,7 +44,7 @@ fn handle_fpga(fpga_msg: Message) {
 
 fn handle_version_connect(vc_msg: Message) {
     match vc_msg.try_into() {
-        Ok(vc @ VersionConnect::Inform(_)) => info!(?vc),
+        Ok(vc @ VersionConnect::Inform(_)) => debug!(?vc),
         Err(e) => error!(?e, "Couldn't deserialize `version-connect`"),
     }
 }
