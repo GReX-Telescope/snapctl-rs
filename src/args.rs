@@ -1,5 +1,6 @@
-use clap::{Parser, Subcommand};
 use std::{net::IpAddr, path::PathBuf};
+
+use clap::{Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum Command {

@@ -1,18 +1,21 @@
 mod args;
 mod handlers;
 
-use clap::Parser;
-use katcp::{
-    messages::{core::*, log::*},
-    prelude::*,
-};
-use katcp_casper::*;
 use std::{
     error::Error,
     fmt::Debug,
     net::{IpAddr, SocketAddr},
     path::PathBuf,
 };
+
+use args::*;
+use clap::Parser;
+use handlers::*;
+use katcp::{
+    messages::{core::*, log::*},
+    prelude::*,
+};
+use katcp_casper::*;
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -22,9 +25,6 @@ use tokio::{
 };
 use tracing::{debug, info, trace};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-
-use args::*;
-use handlers::*;
 
 struct State {
     unhandled_incoming_messages: UnboundedReceiver<Message>,
@@ -149,12 +149,9 @@ async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
     if bofs.iter().any(|e| *e == filename) && !force {
         // Upload the file that's already on board
         info!("A file with this name already exists on the device, programming that instead of uploading");
-        match make_request(
-            state,
-            Progdev::Request {
-                filename: filename.clone(),
-            },
-        )
+        match make_request(state, Progdev::Request {
+            filename: filename.clone(),
+        })
         .await
         {
             Ok(v) => {
@@ -175,12 +172,9 @@ async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
         debug!("The file we want to program doesn't exist on the device (or we're forcing an upload), upload it instead");
         info!("Attempting to program: {}", path.display());
         // Get an upload port
-        match make_request(
-            state,
-            Upload::Request {
-                port: (port as u32),
-            },
-        )
+        match make_request(state, Upload::Request {
+            port: (port as u32),
+        })
         .await
         {
             Ok(v) => {
