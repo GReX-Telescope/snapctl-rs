@@ -48,7 +48,7 @@ where
     if request_msg.kind() != MessageKind::Request {
         return Err("We tried to send a request message that wasn't actually a request".to_owned());
     }
-    trace!(?request);
+    trace!(?request, "Sending a request");
     state
         .writer
         .write_all(request_msg.to_string().as_bytes())
@@ -57,23 +57,24 @@ where
     let mut messages = vec![];
     loop {
         match state.unhandled_incoming_messages.recv().await {
-            Some(v) => {
-                trace!(?v, "Hit an unhandlable message");
-                match v.kind() {
-                    MessageKind::Request => unreachable!(),
-                    MessageKind::Inform => messages.push(
-                        v.try_into()
-                            .expect("Error processing incoming inform message"),
-                    ),
-                    MessageKind::Reply => {
-                        messages.push(
-                            v.try_into()
-                                .expect("Error processing incoming reply message"),
-                        );
-                        break;
+            Some(v) => match v.kind() {
+                MessageKind::Request => unreachable!(),
+                MessageKind::Inform => {
+                    let msg = v.try_into();
+                    match msg {
+                        Ok(msg) => messages.push(msg),
+                        Err(e) => {
+                            debug!(?e, "Unexpected message");
+                            continue;
+                        }
                     }
                 }
-            }
+                MessageKind::Reply => {
+                    let msg = v.try_into().expect("Got a Reply we couldn't deserialize");
+                    messages.push(msg);
+                    break;
+                }
+            },
             None => panic!("The channel we were expecting messages from has been closed"),
         }
     }
