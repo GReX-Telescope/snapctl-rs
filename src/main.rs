@@ -23,6 +23,7 @@ use tokio::{
     net::{tcp::OwnedWriteHalf, TcpStream},
     sync::mpsc::{unbounded_channel, UnboundedReceiver},
     task,
+    time::{sleep, Duration},
 };
 use tracing::{debug, info, trace};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
@@ -113,36 +114,6 @@ async fn set_device_log_level(state: &mut State, lvl: Level) {
     }
 }
 
-/// Returns a vector of bof-files present on the device
-async fn get_bofs(state: &mut State) -> Vec<String> {
-    match make_request(state, Listbof::Request).await {
-        Ok(v) => {
-            // The returned vector should be all informs and the reply
-            // We should check we got back the number of messages we expected
-            let reply = v
-                .iter()
-                .find(|msg| matches!(msg, Listbof::Reply(_)))
-                .expect("We didn't get a Listbof reply");
-            let num_bofs = match reply {
-                Listbof::Reply(IntReply::Ok { num }) => *num,
-                _ => panic!("The Listbof reply contained an error code"),
-            };
-            assert_eq!(num_bofs, (v.len() as u32) - 1);
-            // Now grab all the filenames
-            v.iter()
-                .filter_map(|msg| match msg {
-                    Listbof::Inform { filename } => Some(filename.clone()),
-                    _ => None,
-                })
-                .collect()
-        }
-        Err(e) => {
-            println!("{}", e);
-            panic!("Setting log level errored: we're bailing");
-        }
-    }
-}
-
 async fn program_bof(path: PathBuf, port: u16, state: &mut State) {
     // Upload the file directly and then try to program
     debug!("The file we want to program doesn't exist on the device (or we're forcing an upload), upload it instead");
@@ -189,6 +160,8 @@ async fn program_bof(path: PathBuf, port: u16, state: &mut State) {
         .shutdown()
         .await
         .expect("Error closing upload connection");
+    // Wait ???? until we're good
+    sleep(Duration::from_millis(10000)).await;
     // Check status
     match make_request(state, Fpgastatus::Request).await {
         Ok(v) => {
