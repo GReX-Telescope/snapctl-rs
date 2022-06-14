@@ -140,6 +140,7 @@ async fn program_bof(path: PathBuf, port: u16, state: &mut State) {
             panic!("Requesting an upload port failed: we're bailing");
         }
     };
+    info!("Uploading {}", path.display());
     // Netcat the file over
     let mut file = File::open(path)
         .await
@@ -161,6 +162,7 @@ async fn program_bof(path: PathBuf, port: u16, state: &mut State) {
         .shutdown()
         .await
         .expect("Error closing upload connection");
+    info!("Upload complete, waiting for programming");
     // Wait ???? until we're good
     sleep(Duration::from_millis(10000)).await;
     // Check status
