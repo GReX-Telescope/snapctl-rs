@@ -57,6 +57,16 @@ pub enum Read {
     Request {},
 }
 
+#[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
+pub enum Version {
+    Inform { hash: String },
+}
+
+#[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
+pub enum BuildState {
+    Inform { timestamp: String },
+}
+
 #[cfg(test)]
 mod tests {
     use katcp::messages::common::roundtrip_test;

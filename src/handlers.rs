@@ -54,10 +54,33 @@ fn handle_version_connect(vc_msg: Message) {
     }
 }
 
+fn handle_version(version: Message) {
+    match version.try_into() {
+        Ok(Version::Inform { hash }) => {
+            info!(
+                "Connected server is running katcp_devel with hash: {}",
+                hash
+            )
+        }
+        Err(e) => error!(?e, "Couldn't deserialize `version`"),
+    }
+}
+
+fn handle_build_state(bs: Message) {
+    match bs.try_into() {
+        Ok(bs @ BuildState::Inform { .. }) => {
+            debug!(?bs)
+        }
+        Err(e) => error!(?e, "Couldn't deserialize `build-state`"),
+    }
+}
+
 pub(crate) fn make_inform_dispatchers() -> Dispatchers {
     let mut dispatchers: Dispatchers = HashMap::new();
     dispatchers.insert("log".to_owned(), Box::new(handle_log));
     dispatchers.insert("fpga".to_owned(), Box::new(handle_fpga));
+    dispatchers.insert("version".to_owned(), Box::new(handle_version));
+    dispatchers.insert("build-state".to_owned(), Box::new(handle_build_state));
     dispatchers.insert(
         "version-connect".to_owned(),
         Box::new(handle_version_connect),
