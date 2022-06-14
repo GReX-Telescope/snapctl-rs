@@ -40,8 +40,8 @@ pub enum Fpga {
 }
 
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
-/// Opens a port on the server to allow us to upload a file
-pub enum Upload {
+/// Opens a port on the server to allow us to upload a BOF or FPG file
+pub enum Progremote {
     Request { port: u32 },
     Reply { ret_code: RetCode },
 }

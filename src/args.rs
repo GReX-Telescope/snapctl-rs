@@ -4,12 +4,9 @@ use clap::{Parser, Subcommand};
 
 #[derive(Subcommand, Debug)]
 pub(crate) enum Command {
-    /// Loads a bitstream (BOF) file to the SNAP
+    /// Loads a bitstream (FPG or BOF) file to the SNAP
     Load {
         path: PathBuf,
-        /// Overwrite file if it already exists
-        #[clap(short, long)]
-        force: bool,
         /// The port to upload data through (separate from the katcp port)
         #[clap(long, default_value_t = 3000)]
         port: u16,

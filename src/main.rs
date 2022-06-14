@@ -143,93 +143,67 @@ async fn get_bofs(state: &mut State) -> Vec<String> {
     }
 }
 
-async fn program_bof(path: PathBuf, force: bool, port: u16, state: &mut State) {
-    let filename = path.file_name().unwrap().to_str().unwrap().to_owned();
-    // First get the list of bofs
-    let bofs = get_bofs(state).await;
-    if bofs.iter().any(|e| *e == filename) && !force {
-        // Upload the file that's already on board
-        info!("A file with this name already exists on the device, programming that instead of uploading");
-        match make_request(state, Progdev::Request {
-            filename: filename.clone(),
-        })
-        .await
-        {
-            Ok(v) => {
-                // We should have gotten one reply
-                if let Some(Progdev::Reply { ret_code }) = v.get(0) {
-                    if *ret_code == RetCode::Ok {
-                        info!("BOF programming successful");
-                    }
+async fn program_bof(path: PathBuf, port: u16, state: &mut State) {
+    // Upload the file directly and then try to program
+    debug!("The file we want to program doesn't exist on the device (or we're forcing an upload), upload it instead");
+    info!("Attempting to program: {}", path.display());
+    // Get an upload port
+    match make_request(state, Progremote::Request {
+        port: (port as u32),
+    })
+    .await
+    {
+        Ok(v) => {
+            // We should have gotten one reply
+            if let Some(Progremote::Reply { ret_code }) = v.get(0) {
+                if *ret_code == RetCode::Ok {
+                    debug!("Upload port set: waiting for data");
                 }
-            }
-            Err(e) => {
-                println!("{}", e);
-                panic!("Programming the boffile failed: we're bailing");
+            } else {
+                panic!("Request for upload failed, see logs");
             }
         }
-    } else {
-        // Upload the file directly and then try to program
-        debug!("The file we want to program doesn't exist on the device (or we're forcing an upload), upload it instead");
-        info!("Attempting to program: {}", path.display());
-        // Get an upload port
-        match make_request(state, Upload::Request {
-            port: (port as u32),
-        })
+        Err(e) => {
+            println!("{}", e);
+            panic!("Requesting an upload port failed: we're bailing");
+        }
+    };
+    // Netcat the file over
+    let mut file = File::open(path)
         .await
-        {
-            Ok(v) => {
-                // We should have gotten one reply
-                if let Some(Upload::Reply { ret_code }) = v.get(0) {
-                    if *ret_code == RetCode::Ok {
-                        debug!("Upload port set: waiting for data");
-                    }
-                } else {
-                    panic!("Request for upload failed, see logs");
+        .expect("Could not open file. Is the path correct?");
+    // Read all the data into a buffer here
+    let mut contents = vec![];
+    file.read_to_end(&mut contents)
+        .await
+        .expect("Couldn't read boffile");
+    let mut upload_stream = TcpStream::connect(SocketAddr::new(state.address, port))
+        .await
+        .expect("Error creating upload connection");
+    upload_stream
+        .write_all(&contents)
+        .await
+        .expect("Error while uploading boffile");
+    // Close stream
+    upload_stream
+        .shutdown()
+        .await
+        .expect("Error closing upload connection");
+    // Check status
+    match make_request(state, Fpgastatus::Request).await {
+        Ok(v) => {
+            if let Some(Fpgastatus::Reply { ret_code }) = v.get(0) {
+                if *ret_code != RetCode::Ok {
+                    panic!("FPGA Reports it's not good to go, strange");
                 }
-            }
-            Err(e) => {
-                println!("{}", e);
-                panic!("Requesting an upload port failed: we're bailing");
-            }
-        };
-        // Netcat the file over
-        let mut file = File::open(path)
-            .await
-            .expect("Could not open file. Is the path correct?");
-        // Read all the data into a buffer here
-        let mut contents = vec![];
-        file.read_to_end(&mut contents)
-            .await
-            .expect("Couldn't read boffile");
-        let mut upload_stream = TcpStream::connect(SocketAddr::new(state.address, port))
-            .await
-            .expect("Error creating upload connection");
-        upload_stream
-            .write_all(&contents)
-            .await
-            .expect("Error while uploading boffile");
-        // Close stream
-        upload_stream
-            .shutdown()
-            .await
-            .expect("Error closing upload connection");
-        // Check status
-        match make_request(state, Fpgastatus::Request).await {
-            Ok(v) => {
-                if let Some(Fpgastatus::Reply { ret_code }) = v.get(0) {
-                    if *ret_code != RetCode::Ok {
-                        panic!("Request for upload failed, see logs");
-                    }
-                }
-            }
-            Err(e) => {
-                println!("{}", e);
-                panic!("Requesting the FPGA status failed: we're bailing");
             }
         }
-        info!("Programming successful");
+        Err(e) => {
+            println!("{}", e);
+            panic!("Requesting the FPGA status failed: we're bailing");
+        }
     }
+    info!("Programming successful");
 }
 
 #[tokio::main]
@@ -267,8 +241,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Perform the requested action
     // Perform the action
     match args.command {
-        Command::Load { path, force, port } => {
-            program_bof(path, force, port, &mut state).await;
+        Command::Load { path, port } => {
+            program_bof(path, port, &mut state).await;
         }
     };
     Ok(())
