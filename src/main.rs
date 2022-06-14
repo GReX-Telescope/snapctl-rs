@@ -58,7 +58,7 @@ where
     loop {
         match state.unhandled_incoming_messages.recv().await {
             Some(v) => {
-                trace!(?v);
+                trace!(?v, "Hit an unhandlable message");
                 match v.kind() {
                     MessageKind::Request => unreachable!(),
                     MessageKind::Inform => messages.push(
