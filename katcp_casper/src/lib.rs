@@ -29,6 +29,7 @@ pub enum Progdev {
 pub enum FpgaStatus {
     Loaded,
     Ready,
+    Down,
 }
 
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
