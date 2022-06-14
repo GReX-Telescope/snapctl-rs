@@ -43,7 +43,9 @@ fn handle_fpga(fpga_msg: Message) {
             FpgaStatus::Ready => info!("FPGA Ready"),
             FpgaStatus::Down => info!("FPGA Down"),
         },
-        Err(e) => error!(?e, "Couldn't deserialize `fpga`"),
+        Err(e) => {
+            error!(?e, "Couldn't deserialize `fpga`")
+        }
     };
 }
 
@@ -110,6 +112,8 @@ pub(crate) async fn handle_informs(
                 .as_str()
                 .try_into()
                 .expect("Fatal error while trying to deserialize incoming KATCP message");
+            // Trace every incoming message
+            trace!(?msg);
             // Only handle (async) informs, otherwise just push to the channel
             if msg.kind() != MessageKind::Inform {
                 sender.send(msg).expect(
