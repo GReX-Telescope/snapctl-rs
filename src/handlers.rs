@@ -41,6 +41,7 @@ fn handle_fpga(fpga_msg: Message) {
         Ok(Fpga::Inform { status }) => match status {
             FpgaStatus::Loaded => info!("FPGA Loaded"),
             FpgaStatus::Ready => info!("FPGA Ready"),
+            FpgaStatus::Down => info!("FPGA Down"),
         },
         Err(e) => error!(?e, "Couldn't deserialize `fpga`"),
     };
