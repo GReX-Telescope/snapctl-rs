@@ -30,6 +30,7 @@ pub enum FpgaStatus {
     Loaded,
     Ready,
     Down,
+    Mapped,
 }
 
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
