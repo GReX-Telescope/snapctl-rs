@@ -257,7 +257,7 @@ async fn config_gbe(core: &str, state: &mut State) {
     let ct = CoreType::unpack(
         &wordread(core, CoreType::address() as u32, state)
             .await
-            .to_be_bytes(),
+            .to_le_bytes(),
     )
     .unwrap();
     dbg!(ct);
