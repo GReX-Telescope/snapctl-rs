@@ -239,7 +239,7 @@ async fn wordread(register_name: &str, offset: u32, state: &mut State) -> u32 {
             if let Wordread::Reply { ret_code, word } = v.get(0).unwrap() {
                 assert_eq!(*ret_code, RetCode::Ok);
                 debug!("Read word successfully!");
-                *word
+                word.0
             } else {
                 panic!("Got a bad wordread response, we're bailing");
             }

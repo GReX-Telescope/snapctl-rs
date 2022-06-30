@@ -1,3 +1,4 @@
+use hex;
 use katcp::prelude::*;
 use katcp_derive::{KatcpDiscrete, KatcpMessage};
 
@@ -56,7 +57,34 @@ pub enum Fpgastatus {
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
 pub enum Wordread {
     Request { name: String, offset: u32 },
-    Reply { ret_code: RetCode, word: u32 },
+    Reply { ret_code: RetCode, word: HexWord },
+}
+
+// We need explicit serde for hex literals
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct HexWord(pub u32);
+
+impl ToKatcpArgument for HexWord {
+    fn to_argument(&self) -> String {
+        format!("0x{}", hex::encode(self.0.to_be_bytes()))
+    }
+}
+
+impl FromKatcpArgument for HexWord {
+    type Err = KatcpError;
+
+    fn from_argument(s: impl AsRef<str>) -> Result<Self, Self::Err> {
+        if s.as_ref()[..2] == *"0x" {
+            Ok(HexWord(u32::from_be_bytes(
+                hex::decode(&s.as_ref()[2..])
+                    .map_err(|_| KatcpError::BadArgument)?
+                    .try_into()
+                    .map_err(|_| KatcpError::BadArgument)?,
+            )))
+        } else {
+            Err(KatcpError::BadArgument)
+        }
+    }
 }
 
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
@@ -81,6 +109,18 @@ mod tests {
         roundtrip_test(Listbof::Reply(IntReply::Ok { num: 12 }));
         roundtrip_test(Listbof::Inform {
             filename: "dsa_10gv11.bof".to_owned(),
+        });
+    }
+
+    #[test]
+    fn test_hex() {
+        roundtrip_test(Wordread::Request {
+            name: "gbe0".to_owned(),
+            offset: 0,
+        });
+        roundtrip_test(Wordread::Reply {
+            ret_code: RetCode::Ok,
+            word: HexWord(42069),
         });
     }
 }
