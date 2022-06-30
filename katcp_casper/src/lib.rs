@@ -54,8 +54,9 @@ pub enum Fpgastatus {
 }
 
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
-pub enum Read {
-    Request {},
+pub enum Wordread {
+    Request { name: String, offset: u32 },
+    Reply { ret_code: RetCode, word: u32 },
 }
 
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]

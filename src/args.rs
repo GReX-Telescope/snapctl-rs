@@ -11,6 +11,11 @@ pub(crate) enum Command {
         #[clap(long, default_value_t = 3000)]
         port: u16,
     },
+    /// Configures the 10GbE Core
+    ConfigGBE {
+        /// The name of the 10GbE Core to configure (from Simulink)
+        core: String,
+    },
 }
 
 #[derive(Parser, Debug)]

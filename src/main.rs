@@ -1,6 +1,8 @@
 mod adc;
 mod args;
 mod handlers;
+mod tengbe;
+mod utils;
 
 use std::{
     error::Error,
@@ -17,6 +19,7 @@ use katcp::{
     prelude::*,
 };
 use katcp_casper::*;
+use packed_struct::prelude::*;
 use tokio::{
     fs::File,
     io::{AsyncReadExt, AsyncWriteExt},
@@ -27,6 +30,8 @@ use tokio::{
 };
 use tracing::{debug, info, trace};
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+
+use crate::{tengbe::CoreType, utils::*};
 
 struct State {
     unhandled_incoming_messages: UnboundedReceiver<Message>,
@@ -217,9 +222,43 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Perform the requested action
     // Perform the action
     match args.command {
-        Command::Load { path, port } => {
-            program_bof(path, port, &mut state).await;
-        }
+        Command::Load { path, port } => program_bof(path, port, &mut state).await,
+        Command::ConfigGBE { core } => config_gbe(&core, &mut state).await,
     };
     Ok(())
+}
+
+async fn wordread(register_name: &str, offset: u32, state: &mut State) -> u32 {
+    match make_request(state, Wordread::Request {
+        name: register_name.to_owned(),
+        offset,
+    })
+    .await
+    {
+        Ok(v) => {
+            if let Wordread::Reply { ret_code, word } = v.get(0).unwrap() {
+                assert_eq!(*ret_code, RetCode::Ok);
+                debug!("Read word successfully!");
+                *word
+            } else {
+                panic!("Got a bad wordread response, we're bailing");
+            }
+        }
+        Err(e) => {
+            println!("{}", e);
+            panic!("Reading a word errored: we're bailing");
+        }
+    }
+}
+
+// Test function, please ignore
+async fn config_gbe(core: &str, state: &mut State) {
+    // Try to read from the gbe register
+    let ct = CoreType::unpack(
+        &wordread(core, CoreType::address() as u32, state)
+            .await
+            .to_be_bytes(),
+    )
+    .unwrap();
+    dbg!(ct);
 }
