@@ -126,14 +126,6 @@ pub async fn read(register_name: &str, offset: u32, num_bytes: u32, state: &mut 
     }
 }
 
-async fn read_bool(register_name: &str, state: &mut State) -> bool {
-    *read(register_name, 0, 1, state)
-        .await
-        .get(0)
-        .expect("Get 1 byte back from request")
-        == 1
-}
-
 async fn read_int(register_name: &str, state: &mut State) -> u32 {
     // CASPER registers are big endian
     u32::from_be_bytes(
@@ -142,6 +134,14 @@ async fn read_int(register_name: &str, state: &mut State) -> u32 {
             .try_into()
             .expect("Get 4 bytes back from request"),
     )
+}
+
+async fn read_bool(register_name: &str, state: &mut State) -> bool {
+    *read(register_name, 0, 4, state)
+        .await
+        .get(0)
+        .expect("Get 1 byte back from request")
+        == 1
 }
 
 pub async fn write(register_name: &str, offset: u32, bytes: &[u8], state: &mut State) {
@@ -170,13 +170,13 @@ pub async fn write(register_name: &str, offset: u32, bytes: &[u8], state: &mut S
     }
 }
 
-async fn write_bool(register_name: &str, v: bool, state: &mut State) {
-    write(register_name, 0, &[v as u8], state).await
-}
-
 async fn write_int(register_name: &str, v: u32, state: &mut State) {
     // CASPER registers are big endian
     write(register_name, 0, &v.to_be_bytes(), state).await
+}
+
+async fn write_bool(register_name: &str, v: bool, state: &mut State) {
+    write_int(register_name, v as u32, state).await
 }
 
 pub async fn read_packed<T, const N: usize>(

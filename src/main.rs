@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ping(&mut state).await;
     info!("Connected to the SNAP");
     // Ask the device  to send us trace level logs, even if we don't use them as we'll filter them here
-    set_device_log_level(&mut state, Level::Trace).await;
+    set_device_log_level(&mut state, Level::Info).await;
     // Perform the requested action
     // Perform the action
     match args.command {

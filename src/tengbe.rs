@@ -42,7 +42,7 @@ enum CoreAddress {
     // RXValidCounter = 0x6C,
     // RXOverflowCounter = 0x70,
     // RXBadCounter = 0x74,
-    // CounterReset = 0x78,
+    //  CounterReset = 0x78,
 }
 
 #[derive(PrimitiveEnum_u8, Debug, Copy, Clone)]
