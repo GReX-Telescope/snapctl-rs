@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
-use katcp::{
-    messages::{core::*, log::*},
-    prelude::*,
-};
+use katcp::{messages::log::*, prelude::*};
 use katcp_casper::*;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},

@@ -1,4 +1,4 @@
-use hex;
+use base64::{decode, encode};
 use katcp::prelude::*;
 use katcp_derive::{KatcpDiscrete, KatcpMessage};
 
@@ -55,35 +55,47 @@ pub enum Fpgastatus {
 }
 
 #[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
-pub enum Wordread {
-    Request { name: String, offset: u32 },
-    Reply { ret_code: RetCode, word: HexWord },
+pub enum Read {
+    Request {
+        name: String,
+        offset: u32,
+        num_bytes: u32,
+    },
+    Reply {
+        ret_code: RetCode,
+        bytes: Base64Bytes,
+    },
+}
+
+#[derive(KatcpMessage, Debug, PartialEq, Eq, Clone)]
+pub enum Write {
+    Request {
+        name: String,
+        offset: u32,
+        bytes: Base64Bytes,
+    },
+    Reply {
+        ret_code: RetCode,
+    },
 }
 
 // We need explicit serde for hex literals
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub struct HexWord(pub u32);
+pub struct Base64Bytes(pub Vec<u8>);
 
-impl ToKatcpArgument for HexWord {
+impl ToKatcpArgument for Base64Bytes {
     fn to_argument(&self) -> String {
-        format!("0x{}", hex::encode(self.0.to_be_bytes()))
+        encode(&self.0)
     }
 }
 
-impl FromKatcpArgument for HexWord {
+impl FromKatcpArgument for Base64Bytes {
     type Err = KatcpError;
 
     fn from_argument(s: impl AsRef<str>) -> Result<Self, Self::Err> {
-        if s.as_ref()[..2] == *"0x" {
-            Ok(HexWord(u32::from_be_bytes(
-                hex::decode(&s.as_ref()[2..])
-                    .map_err(|_| KatcpError::BadArgument)?
-                    .try_into()
-                    .map_err(|_| KatcpError::BadArgument)?,
-            )))
-        } else {
-            Err(KatcpError::BadArgument)
-        }
+        decode(s.as_ref())
+            .map_err(|_| KatcpError::BadArgument)
+            .map(Base64Bytes)
     }
 }
 
@@ -113,14 +125,15 @@ mod tests {
     }
 
     #[test]
-    fn test_hex() {
-        roundtrip_test(Wordread::Request {
+    fn test_read() {
+        roundtrip_test(Read::Request {
             name: "gbe0".to_owned(),
             offset: 0,
+            num_bytes: 4,
         });
-        roundtrip_test(Wordread::Reply {
+        roundtrip_test(Read::Reply {
             ret_code: RetCode::Ok,
-            word: HexWord(42069),
+            bytes: Base64Bytes(vec![0xde, 0xad, 0xbe, 0xef]),
         });
     }
 }

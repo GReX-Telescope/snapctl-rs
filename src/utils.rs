@@ -1,4 +1,9 @@
-pub(crate) trait RegisterAddress {
+use std::net::IpAddr;
+
+use crate::Message;
+use tokio::{net::tcp::OwnedWriteHalf, sync::mpsc::UnboundedReceiver};
+
+pub trait RegisterAddress {
     /// Returns the address of this particular struct
     fn address() -> u8;
 }
@@ -13,4 +18,12 @@ macro_rules! register_address {
             }
         }
     };
+}
+
+pub struct State {
+    pub unhandled_incoming_messages: UnboundedReceiver<Message>,
+    // The writer
+    pub writer: OwnedWriteHalf,
+    // The connection address
+    pub address: IpAddr,
 }
